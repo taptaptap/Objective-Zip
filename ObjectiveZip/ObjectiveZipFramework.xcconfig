@@ -1,0 +1,9 @@
+//
+//  ObjectiveZipFramework.xcconfig
+//  Objective-Zip
+//
+//  Created by Julián Romero on 30/12/15.
+//
+//
+
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) NOCRYPT NOUNCRYPT
