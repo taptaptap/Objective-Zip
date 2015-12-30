@@ -1,12 +1,14 @@
 /* ioapi.h -- IO base function header for compress/uncompress .zip
-   part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )
+   part of the MiniZip project
 
-   Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )
-
+   Copyright (C) 1998-2010 Gilles Vollant
+     http://www.winimage.com/zLibDll/minizip.html
    Modifications for Zip64 support
-   Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
+     Copyright (C) 2009-2010 Mathias Svensson
+     http://result42.com
 
-   For more info read MiniZip_info.txt
+   This program is distributed under the terms of the same license as zlib.
+   See the accompanying LICENSE file for the full text of the license.
 */
 
 #include <stdlib.h>
@@ -14,34 +16,30 @@
 
 #include "ioapi.h"
 
-#if (defined(_WIN32))
-    #include <tchar.h>
-    #define snprintf _snprintf
-    #ifndef _CRT_SECURE_NO_WARNINGS
-        #define _CRT_SECURE_NO_WARNINGS
-    #endif
+#if defined(_WIN32)
+#  define snprintf _snprintf
 #endif
 
-#if defined(__APPLE__) || defined(IOAPI_NO_64)
-// In darwin and perhaps other BSD variants off_t is a 64 bit value, hence no need for specific 64 bit functions
-#define FOPEN_FUNC(filename, mode) fopen(filename, mode)
-#define FTELLO_FUNC(stream) ftello(stream)
-#define FSEEKO_FUNC(stream, offset, origin) fseeko(stream, offset, origin)
+#ifdef __APPLE__
+/* In darwin and perhaps other BSD variants off_t is a 64 bit value, hence no need for specific 64 bit functions */
+#  define FOPEN_FUNC(filename, mode) fopen(filename, mode)
+#  define FTELLO_FUNC(stream) ftello(stream)
+#  define FSEEKO_FUNC(stream, offset, origin) fseeko(stream, offset, origin)
 #else
-#define FOPEN_FUNC(filename, mode) fopen64(filename, mode)
-#define FTELLO_FUNC(stream) ftello64(stream)
-#define FSEEKO_FUNC(stream, offset, origin) fseeko64(stream, offset, origin)
+#  define FOPEN_FUNC(filename, mode) fopen64(filename, mode)
+#  define FTELLO_FUNC(stream) ftello64(stream)
+#  define FSEEKO_FUNC(stream, offset, origin) fseeko64(stream, offset, origin)
 #endif
 
 /* I've found an old Unix (a SunOS 4.1.3_U1) without all SEEK_* defined.... */
 #ifndef SEEK_CUR
-#define SEEK_CUR    1
+#  define SEEK_CUR    1
 #endif
 #ifndef SEEK_END
-#define SEEK_END    2
+#  define SEEK_END    2
 #endif
 #ifndef SEEK_SET
-#define SEEK_SET    0
+#  define SEEK_SET    0
 #endif
 
 voidpf call_zopen64 (const zlib_filefunc64_32_def* pfilefunc,const void*filename,int mode)
@@ -109,10 +107,9 @@ static int     ZCALLBACK ferror_file_func OF((voidpf opaque, voidpf stream));
 typedef struct 
 {
     FILE *file;
-    int filenameLength;
+    size_t filenameLength;
     void *filename;
 } FILE_IOPOSIX;
-
 
 static voidpf file_build_ioposix(FILE *file, const char *filename)
 {
@@ -121,7 +118,7 @@ static voidpf file_build_ioposix(FILE *file, const char *filename)
         return NULL;
     ioposix = (FILE_IOPOSIX*)malloc(sizeof(FILE_IOPOSIX));
     ioposix->file = file;
-    ioposix->filenameLength = (int) (strlen(filename) + 1);
+    ioposix->filenameLength = strlen(filename) + 1;
     ioposix->filename = (char*)malloc(ioposix->filenameLength * sizeof(char));
     strncpy(ioposix->filename, filename, ioposix->filenameLength);
     return (voidpf)ioposix;
@@ -131,13 +128,11 @@ static voidpf ZCALLBACK fopen_file_func (voidpf opaque, const char* filename, in
 {
     FILE* file = NULL;
     const char* mode_fopen = NULL;
-    if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
+    if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER) == ZLIB_FILEFUNC_MODE_READ)
         mode_fopen = "rb";
-    else
-    if (mode & ZLIB_FILEFUNC_MODE_EXISTING)
+    else if (mode & ZLIB_FILEFUNC_MODE_EXISTING)
         mode_fopen = "r+b";
-    else
-    if (mode & ZLIB_FILEFUNC_MODE_CREATE)
+    else if (mode & ZLIB_FILEFUNC_MODE_CREATE)
         mode_fopen = "wb";
 
     if ((filename != NULL) && (mode_fopen != NULL))
@@ -152,13 +147,11 @@ static voidpf ZCALLBACK fopen64_file_func (voidpf opaque, const void* filename, 
 {
     FILE* file = NULL;
     const char* mode_fopen = NULL;
-    if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
+    if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER) == ZLIB_FILEFUNC_MODE_READ)
         mode_fopen = "rb";
-    else
-    if (mode & ZLIB_FILEFUNC_MODE_EXISTING)
+    else if (mode & ZLIB_FILEFUNC_MODE_EXISTING)
         mode_fopen = "r+b";
-    else
-    if (mode & ZLIB_FILEFUNC_MODE_CREATE)
+    else if (mode & ZLIB_FILEFUNC_MODE_CREATE)
         mode_fopen = "wb";
 
     if ((filename != NULL) && (mode_fopen != NULL))
@@ -174,21 +167,21 @@ static voidpf ZCALLBACK fopendisk64_file_func (voidpf opaque, voidpf stream, int
     FILE_IOPOSIX *ioposix = NULL;
     char *diskFilename = NULL;
     voidpf ret = NULL;
-    int i = 0;
+    size_t i = 0;
 
     if (stream == NULL)
         return NULL;
     ioposix = (FILE_IOPOSIX*)stream;
     diskFilename = (char*)malloc(ioposix->filenameLength * sizeof(char));
     strncpy(diskFilename, ioposix->filename, ioposix->filenameLength);
-    for (i = ioposix->filenameLength - 1; i >= 0; i -= 1)
+    for (i = ioposix->filenameLength - 1; i > 0; i -= 1)
     {
-        if (diskFilename[i] != '.') 
+        if (diskFilename[i] != '.')
             continue;
         snprintf(&diskFilename[i], ioposix->filenameLength - i, ".z%02d", number_disk + 1);
         break;
     }
-    if (i >= 0)
+    if (i > 0)
         ret = fopen64_file_func(opaque, diskFilename, mode);
     free(diskFilename);
     return ret;
@@ -199,21 +192,21 @@ static voidpf ZCALLBACK fopendisk_file_func (voidpf opaque, voidpf stream, int n
     FILE_IOPOSIX *ioposix = NULL;
     char *diskFilename = NULL;
     voidpf ret = NULL;
-    int i = 0;
+    size_t i = 0;
 
     if (stream == NULL)
         return NULL;
     ioposix = (FILE_IOPOSIX*)stream;
     diskFilename = (char*)malloc(ioposix->filenameLength * sizeof(char));
     strncpy(diskFilename, ioposix->filename, ioposix->filenameLength);
-    for (i = ioposix->filenameLength - 1; i >= 0; i -= 1)
+    for (i = ioposix->filenameLength - 1; i > 0; i -= 1)
     {
-        if (diskFilename[i] != '.') 
+        if (diskFilename[i] != '.')
             continue;
         snprintf(&diskFilename[i], ioposix->filenameLength - i, ".z%02d", number_disk + 1);
         break;
     }
-    if (i >= 0)
+    if (i > 0)
         ret = fopen_file_func(opaque, diskFilename, mode);
     free(diskFilename);
     return ret;
@@ -263,11 +256,11 @@ static ZPOS64_T ZCALLBACK ftell64_file_func (voidpf opaque, voidpf stream)
     return ret;
 }
 
-static long ZCALLBACK fseek_file_func (voidpf  opaque, voidpf stream, uLong offset, int origin)
+static long ZCALLBACK fseek_file_func (voidpf opaque, voidpf stream, uLong offset, int origin)
 {
     FILE_IOPOSIX *ioposix = NULL;
     int fseek_origin = 0;
-    long ret;
+    long ret = 0;
 
     if (stream == NULL)
         return -1;
@@ -275,28 +268,28 @@ static long ZCALLBACK fseek_file_func (voidpf  opaque, voidpf stream, uLong offs
 
     switch (origin)
     {
-    case ZLIB_FILEFUNC_SEEK_CUR:
-        fseek_origin = SEEK_CUR;
-        break;
-    case ZLIB_FILEFUNC_SEEK_END:
-        fseek_origin = SEEK_END;
-        break;
-    case ZLIB_FILEFUNC_SEEK_SET:
-        fseek_origin = SEEK_SET;
-        break;
-    default: return -1;
+        case ZLIB_FILEFUNC_SEEK_CUR:
+            fseek_origin = SEEK_CUR;
+            break;
+        case ZLIB_FILEFUNC_SEEK_END:
+            fseek_origin = SEEK_END;
+            break;
+        case ZLIB_FILEFUNC_SEEK_SET:
+            fseek_origin = SEEK_SET;
+            break;
+        default:
+            return -1;
     }
-    ret = 0;
     if (fseek(ioposix->file, offset, fseek_origin) != 0)
         ret = -1;
     return ret;
 }
 
-static long ZCALLBACK fseek64_file_func (voidpf  opaque, voidpf stream, ZPOS64_T offset, int origin)
+static long ZCALLBACK fseek64_file_func (voidpf opaque, voidpf stream, ZPOS64_T offset, int origin)
 {
     FILE_IOPOSIX *ioposix = NULL;
     int fseek_origin = 0;
-    long ret;
+    long ret = 0;
 
     if (stream == NULL)
         return -1;
@@ -304,18 +297,18 @@ static long ZCALLBACK fseek64_file_func (voidpf  opaque, voidpf stream, ZPOS64_T
 
     switch (origin)
     {
-    case ZLIB_FILEFUNC_SEEK_CUR:
-        fseek_origin = SEEK_CUR;
-        break;
-    case ZLIB_FILEFUNC_SEEK_END:
-        fseek_origin = SEEK_END;
-        break;
-    case ZLIB_FILEFUNC_SEEK_SET:
-        fseek_origin = SEEK_SET;
-        break;
-    default: return -1;
+        case ZLIB_FILEFUNC_SEEK_CUR:
+            fseek_origin = SEEK_CUR;
+            break;
+        case ZLIB_FILEFUNC_SEEK_END:
+            fseek_origin = SEEK_END;
+            break;
+        case ZLIB_FILEFUNC_SEEK_SET:
+            fseek_origin = SEEK_SET;
+            break;
+        default:
+            return -1;
     }
-    ret = 0;
 
     if(FSEEKO_FUNC(ioposix->file, offset, fseek_origin) != 0)
         ret = -1;
@@ -349,8 +342,7 @@ static int ZCALLBACK ferror_file_func (voidpf opaque, voidpf stream)
     return ret;
 }
 
-void fill_fopen_filefunc (pzlib_filefunc_def)
-  zlib_filefunc_def* pzlib_filefunc_def;
+void fill_fopen_filefunc (zlib_filefunc_def* pzlib_filefunc_def)
 {
     pzlib_filefunc_def->zopen_file = fopen_file_func;
     pzlib_filefunc_def->zopendisk_file = fopendisk_file_func;
@@ -363,7 +355,7 @@ void fill_fopen_filefunc (pzlib_filefunc_def)
     pzlib_filefunc_def->opaque = NULL;
 }
 
-void fill_fopen64_filefunc (zlib_filefunc64_def*  pzlib_filefunc_def)
+void fill_fopen64_filefunc (zlib_filefunc64_def* pzlib_filefunc_def)
 {
     pzlib_filefunc_def->zopen64_file = fopen64_file_func;
     pzlib_filefunc_def->zopendisk64_file = fopendisk64_file_func;
